@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<title>מרכז משחקים משולב</title>
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #ffcede;
+    color: rgb(255, 14, 98);
+    text-align: center;
+}
+.hidden { display: none; }
+
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    margin: 5px;
+}
+.menu button { background: #ff2c64; color: rgb(255, 255, 255); }
+.back { background: #ff0059; color: rgb(255, 171, 193); margin-top: 20px; }
+
+/* זיכרון */
+.grid { display: grid; gap: 10px; justify-content: center; margin-top: 20px; }
+.card { width: 60px; height: 60px; background: #555; border-radius: 8px; cursor: pointer; }
+
+/* קליקר */
+#clickBtn { width: 160px; height: 160px; border-radius: 50%; font-size: 22px; color: white; border: none; cursor: pointer; }
+
+/* תתפוס את הצבע */
+#catchColorArea { position: relative; width: 400px; height: 400px; margin: 20px auto; border: 2px solid white; }
+#movingColor { width: 50px; height: 50px; position: absolute; border-radius: 8px; cursor: pointer; }
+
+/* Geometry Dash */
+#gameCanvas { display: block; margin: 20px auto; background: linear-gradient(to bottom,#1e1e1e,#333); border: 3px solid #555; }
+
+/* נחש את הצבע */
+#guessOptions button { cursor: pointer; border-radius: 8px; }
+
+/* נחש את הצבע – משודרג */
+.color-box {
+    display: inline-block;
+    width: 120px;
+    height: 120px;
+    margin: 20px;
+    border: 3px solid #fff;
+    line-height: 120px;
+    font-weight: bold;
+    font-size: 20px;
+    color: #fff;
+    border-radius: 10px;
+}
+#options button {
+    margin: 10px;
+    padding: 15px 25px;
+    font-size: 20px;
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    transition: transform 0.1s;
+}
+#options button:hover { transform: scale(1.1); }
+#score { font-size: 24px; margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<h1>איזה משחק באלך לשחק?</h1>
+
+<div id="menu" class="menu">
+    <button id="btnMemory"> זיכרון צבעים</button>
+    <button id="btnClicker"> קליקר</button>
+    <button id="btnCatch"> תתפוס את הצבע</button>
+    <button id="btnDash"> Geometry Dash</button>
+    <button id="btnGuess"> נחש את הצבע</button>
+    <button id="btnGuess2"> נחש את הצבע משודרג</button>
+</div>
+
+<!-- משחק זיכרון -->
+<div id="memoryGame" class="hidden">
+    <h2> זיכרון צבעים</h2>
+    <div id="memoryInfo"></div>
+    <div id="grid" class="grid"></div>
+    <h3> חנות זיכרון</h3>
+    <div id="memoryShop"></div>
+    <button class="back" id="backMemory"> חזרה לתפריט</button>
+</div>
+
+<!-- משחק קליקר -->
+<div id="clickerGame" class="hidden">
+    <h2> קליקר</h2>
+    <div id="clickInfo"></div>
+
+    <!-- ⏱️ טיימר -->
+    <div id="clickTimer">זמן: 60</div>
+   
+    <button id="clickBtn">לחצי!</button>
+    <h3> חנות קליקר</h3>
+    <div id="clickShop"></div>
+    <button class="back" id="backClicker"> חזרה לתפריט</button>
+</div>
+
+
+<!-- משחק תתפוס את הצבע -->
+<div id="catchColorGame" class="hidden">
+    <h2>תתפוס את הצבע</h2>
+    <div id="catchInfo"></div>
+    <div id="catchColorArea">
+        <div id="movingColor"></div>
+    </div>
+    <h3> חנות תפוס הצבע</h3>
+    <div id="catchShop"></div>
+    <button class="back" id="backCatch"> חזרה לתפריט</button>
+</div>
+
+<!-- Geometry Dash -->
+<div id="dashGame" class="hidden">
+    <h2> Geometry Dash</h2>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <button class="back" id="backDash">חזרה לתפריט</button>
+</div>
+
+<!-- נחש את הצבע – מקורי -->
+<div id="guessColorGame" class="hidden">
+    <h2> נחש את הצבע</h2>
+    <div id="guessInfo">ניקוד: 0 | זמן: 60</div>
+    <div id="colorBox" style="width:150px; height:150px; margin:20px auto; border:2px solid white;"></div>
+    <div id="guessOptions" style="display:flex; justify-content:center; flex-wrap:wrap; gap:10px;"></div>
+    <button class="back" id="backGuess"> חזרה לתפריט</button>
+</div>
+
+<!-- נחש את הצבע – משודרג -->
+<div id="guessColorGame2" class="hidden">
+    <h2> נחש את הצבע – משודרג</h2>
+    <div id="colors">
+        <div class="color-box" id="color1"></div>
+        <span style="font-size: 50px; vertical-align: middle;">+</span>
+        <div class="color-box" id="color2"></div>
+    </div>
+    <div id="options"></div>
+    <div id="score">Score: 0</div>
+    <button class="back" id="backGuess2"> חזרה לתפריט</button>
+</div>
+
+<script>
+const colors = ["red","blue","green","yellow","purple","orange","pink","brown","cyan","lime","magenta","gold"];
+
+/* -------- ניווט ותפריט -------- */
+document.addEventListener("DOMContentLoaded", () => {
+    const menu = document.getElementById("menu");
+    const memoryGame = document.getElementById("memoryGame");
+    const clickerGame = document.getElementById("clickerGame");
+    const catchGame = document.getElementById("catchColorGame");
+    const dashGame = document.getElementById("dashGame");
+    const guessGame = document.getElementById("guessColorGame");
+    const guessGame2 = document.getElementById("guessColorGame2");
+
+    document.getElementById("btnMemory").onclick = () => { menu.classList.add("hidden"); memoryGame.classList.remove("hidden"); startMemory(); updateMemoryShop(); };
+    document.getElementById("btnClicker").onclick = () => { menu.classList.add("hidden"); clickerGame.classList.remove("hidden"); updateClicker(); updateClickShop(); };
+    document.getElementById("btnCatch").onclick = () => { menu.classList.add("hidden"); catchGame.classList.remove("hidden"); startCatchColor(); updateCatchShop(); };
+    document.getElementById("btnDash").onclick = () => { menu.classList.add("hidden"); dashGame.classList.remove("hidden"); startDash(); };
+    document.getElementById("btnGuess").onclick = () => { menu.classList.add("hidden"); guessGame.classList.remove("hidden"); startGuessColor(); };
+    document.getElementById("btnGuess2").onclick = () => { menu.classList.add("hidden"); guessGame2.classList.remove("hidden"); guess2Score=0; pickRandomCombination(); };
+
+    const backButtons = [ "backMemory", "backClicker", "backCatch", "backDash", "backGuess", "backGuess2" ];
+    backButtons.forEach(id => {
+        document.getElementById(id).onclick = () => {
+            memoryGame.classList.add("hidden");
+            clickerGame.classList.add("hidden");
+            catchGame.classList.add("hidden");
+            dashGame.classList.add("hidden");
+            guessGame.classList.add("hidden");
+            guessGame2.classList.add("hidden");
+            menu.classList.remove("hidden");
+            cancelAnimationFrame(animationId);
+            cancelAnimationFrame(dashAnimationId);
+            clearInterval(guessTimer);
+        };
+    });
+});
+
+/* -------- משחק זיכרון -------- */
+let memoryLevel = 1, firstCard = null, lock = false, extraPairs = 0;
+function startMemory() {
+    firstCard = null; lock=false;
+    const pairs = 2 + memoryLevel + extraPairs;
+    const chosen = colors.slice(0,pairs);
+    const cards = [...chosen,...chosen].sort(()=>Math.random()-0.5);
+    const grid = document.getElementById("grid");
+    const info = document.getElementById("memoryInfo");
+    grid.innerHTML = "";
+    info.textContent = `רמה: ${memoryLevel}`;
+    grid.style.gridTemplateColumns = `repeat(${Math.ceil(Math.sqrt(cards.length))},60px)`;
+    cards.forEach(color=>{
+        const card = document.createElement("div");
+        card.className="card";
+        card.dataset.color=color;
+        card.onclick=()=>{
+            if(lock || card.style.background) return;
+            card.style.background=color;
+            if(!firstCard) firstCard=card;
+            else{
+                if(firstCard.dataset.color===color) firstCard=null;
+                else{
+                    lock=true;
+                    setTimeout(()=>{ card.style.background=""; firstCard.style.background=""; firstCard=null; lock=false; },700);
+                }
+                if([...grid.children].every(c=>c.style.background)){ setTimeout(()=>{ memoryLevel++; startMemory(); },700);}
+            }
+        };
+        grid.appendChild(card);
+    });
+}
+function updateMemoryShop(){
+    const shop=document.getElementById("memoryShop");
+    shop.innerHTML="";
+    for(let i=1;i<=3;i++){
+        const btn=document.createElement("button");
+        btn.textContent=`הוסף קלפים נוספים +${i}`;
+        btn.onclick=()=>{ extraPairs+=i; startMemory(); };
+        shop.appendChild(btn);
+    }
+}
+
+/* -------- משחק קליקר -------- */
+
+let clicks=0, clickLevel=1;
+const clickBtn=document.getElementById("clickBtn"), clickInfo=document.getElementById("clickInfo");
+clickBtn.onclick = () => {
+    clicks++;
+    if(clicks%20===0){ clickLevel++; clickBtn.style.background = colors[clickLevel % colors.length]; }
+    updateClicker();
+};
+function updateClicker(){ clickInfo.textContent=`רמה: ${clickLevel} | לחיצות: ${clicks}`; if(!clickBtn.style.background) clickBtn.style.background=colors[0]; updateClickShop(); }
+function updateClickShop(){
+    const shop=document.getElementById("clickShop"); shop.innerHTML="";
+    for(let i=1;i<=5;i++){
+        const cost=i*20;
+        const btn=document.createElement("button");
+        btn.textContent=`קנה רמה ${i} - עלות: ${cost} לחיצות`;
+        btn.onclick=()=>{ if(clicks>=cost){ clicks-=cost; clickLevel=i; clickBtn.style.background=colors[clickLevel % colors.length]; updateClicker(); } else { alert("אין מספיק לחיצות!"); }};
+        shop.appendChild(btn);
+    }
+}
+
+/* -------- משחק תתפוס את הצבע -------- */
+let catchScore=0, catchLevel=1, catchSpeed=1, targetX=0,targetY=0,movingX=0,movingY=0,animationId;
+const catchInfo=document.getElementById("catchInfo"), movingColor=document.getElementById("movingColor"), catchArea=document.getElementById("catchColorArea");
+function startCatchColor(){
+    catchScore=0; catchLevel=1; catchSpeed=1;
+    movingColor.style.background=colors[0]; movingColor.style.width=movingColor.style.height="50px";
+    movingX=movingColor.offsetLeft; movingY=movingColor.offsetTop;
+    chooseNewTarget(); updateCatchInfo();
+    cancelAnimationFrame(animationId); animateColor();
+    movingColor.onclick=()=>{ catchScore++; if(catchScore%5===0){ catchLevel++; catchSpeed+=0.5; }
+        let newColor; do{ newColor=colors[Math.floor(Math.random()*colors.length)]; } while(newColor===movingColor.style.background);
+        movingColor.style.background=newColor;
+        updateCatchInfo();
+    };
+}
+function updateCatchInfo(){ catchInfo.textContent=`רמה: ${catchLevel} | נקודות: ${catchScore}`; }
+function updateCatchShop(){ const shop=document.getElementById("catchShop"); shop.innerHTML="";
+    const btnSpeed=document.createElement("button"); btnSpeed.textContent="שדרג מהירות +0.5"; btnSpeed.onclick=()=>{ catchSpeed+=0.5; }; shop.appendChild(btnSpeed);
+    const btnSize=document.createElement("button"); btnSize.textContent="שדרג גודל +10 פיקסלים"; btnSize.onclick=()=>{ let size=parseInt(movingColor.style.width); size+=10; movingColor.style.width=movingColor.style.height=size+"px"; }; shop.appendChild(btnSize);
+}
+function chooseNewTarget(){ const areaWidth=catchArea.clientWidth-movingColor.clientWidth; const areaHeight=catchArea.clientHeight-movingColor.clientHeight; targetX=Math.random()*areaWidth; targetY=Math.random()*areaHeight; }
+function animateColor(){ const dx=targetX-movingX, dy=targetY-movingY, dist=Math.sqrt(dx*dx+dy*dy);
+    if(dist<catchSpeed){ movingX=targetX; movingY=targetY; chooseNewTarget(); } else{ movingX+=(dx/dist)*catchSpeed; movingY+=(dy/dist)*catchSpeed; }
+    movingColor.style.left=movingX+"px"; movingColor.style.top=movingY+"px";
+    animationId=requestAnimationFrame(animateColor);
+}
+
+/* -------- Geometry Dash -------- */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let dashPlayer = {x:100, y:300, width:50, height:50, velY:0, jumpForce:15, isGrounded:false, color:"#00ffff"};
+let dashObstacles = [], dashScore=0, dashLevel=1, dashSpawnTimer=0, dashAnimationId;
+
+function startDash(){
+    dashPlayer.y=300; dashPlayer.velY=0; dashObstacles=[]; dashScore=0; dashLevel=1; dashSpawnTimer=0;
+    cancelAnimationFrame(dashAnimationId);
+    updateDash();
+}
+
+function updateDash(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    for(let i=0;i<canvas.width;i+=80){
+        ctx.strokeStyle = `rgba(255,255,255,0.05)`;
+        ctx.beginPath();
+        ctx.moveTo(i,(Date.now()/10)%400);
+        ctx.lineTo(i+50,canvas.height);
+        ctx.stroke();
+    }
+
+    dashPlayer.velY += 0.8; dashPlayer.y += dashPlayer.velY;
+    if(dashPlayer.y + dashPlayer.height > 350){ dashPlayer.y = 350 - dashPlayer.height; dashPlayer.velY = 0; dashPlayer.isGrounded = true; } 
+    else dashPlayer.isGrounded = false;
+    ctx.fillStyle = dashPlayer.color;
+    ctx.fillRect(dashPlayer.x, dashPlayer.y, dashPlayer.width, dashPlayer.height);
+
+    dashSpawnTimer++;
+    if(dashSpawnTimer > 90 - dashLevel*10){
+        let w=Math.random()*30+20, h=Math.random()*50+20;
+        dashObstacles.push({x:canvas.width,width:w,height:h,color:colors[Math.floor(Math.random()*colors.length)]});
+        dashSpawnTimer=0;
+    }
+
+    for(let i=dashObstacles.length-1;i>=0;i--){
+        dashObstacles[i].x-=6;
+        ctx.fillStyle=dashObstacles[i].color;
+        ctx.fillRect(dashObstacles[i].x,350-dashObstacles[i].height,dashObstacles[i].width,dashObstacles[i].height);
+
+        if(dashPlayer.x < dashObstacles[i].x + dashObstacles[i].width &&
+           dashPlayer.x + dashPlayer.width > dashObstacles[i].x &&
+           dashPlayer.y < 350 &&
+           dashPlayer.y + dashPlayer.height > 350-dashObstacles[i].height){
+             alert("Game Over! Score: "+dashScore);
+             startDash();
+        }
+
+        if(dashObstacles[i].x + dashObstacles[i].width <0){ dashObstacles.splice(i,1); dashScore++; if(dashScore%10===0) dashLevel++; dashPlayer.color=colors[dashScore%colors.length]; }
+    }
+
+    ctx.fillStyle="#fff"; ctx.font="20px Arial";
+    ctx.fillText("Score: "+dashScore,10,30);
+    ctx.fillText("Level: "+dashLevel,10,60);
+
+    dashAnimationId=requestAnimationFrame(updateDash);
+}
+
+window.addEventListener("keydown",e=>{ if(e.code==="Space" && dashPlayer.isGrounded) dashPlayer.velY=-dashPlayer.jumpForce; });
+
+/* -------- משחק נחש את הצבע – מקורי -------- */
+const guessColors = colors;
+let guessScore = 0, guessTime = 60, guessTimer;
+const guessInfo = document.getElementById("guessInfo");
+const colorBox = document.getElementById("colorBox");
+const guessOptions = document.getElementById("guessOptions");
+let currentAnswer = "";
+
+function startGuessColor(){
+    guessScore=0; guessTime=60; clearInterval(guessTimer);
+    nextGuessColor();
+    guessTimer = setInterval(()=>{
+        guessTime--; guessInfo.textContent=`ניקוד: ${guessScore} | זמן: ${guessTime}`;
+        if(guessTime<=0){ clearInterval(guessTimer); alert("Game Over! Score: "+guessScore); }
+    },1000);
+}
+
+function nextGuessColor(){
+    const color = guessColors[Math.floor(Math.random()*guessColors.length)];
+    currentAnswer=color;
+    colorBox.style.background=color;
+    guessOptions.innerHTML="";
+    let options=[color];
+    while(options.length<3){
+        const c = guessColors[Math.floor(Math.random()*guessColors.length)];
+        if(!options.includes(c)) options.push(c);
+    }
+    options.sort(()=>Math.random()-0.5);
+    options.forEach(c=>{
+        const btn = document.createElement("button"); btn.textContent=c; btn.style.background=c; btn.onclick=()=>{ if(c===currentAnswer) guessScore++; nextGuessColor(); }; guessOptions.appendChild(btn);
+    });
+}
+
+/* -------- נחש את הצבע – משודרג -------- */
+const colorCombinations = [
+  {colors: ["red", "yellow"], result: "orange"},
+  {colors: ["red", "blue"], result: "purple"},
+  {colors: ["blue", "yellow"], result: "green"},
+  {colors: ["white", "black"], result: "gray"},
+  {colors: ["red", "white"], result: "pink"},
+];
+let guess2Score = 0, guess2Current = null;
+
+function pickRandomCombination() {
+    guess2Current = colorCombinations[Math.floor(Math.random() * colorCombinations.length)];
+    document.getElementById("color1").style.backgroundColor = guess2Current.colors[0];
+    document.getElementById("color2").style.backgroundColor = guess2Current.colors[1];
+    generateOptions();
+}
+
+function generateOptions() {
+    const optionsDiv = document.getElementById("options");
+    optionsDiv.innerHTML = "";
+    let choices = [guess2Current.result];
+
+    while (choices.length < 3) {
+        const random = colorCombinations[Math.floor(Math.random() * colorCombinations.length)].result;
+        if (!choices.includes(random)) choices.push(random);
+    }
+
+    choices.sort(() => Math.random() - 0.5);
+
+    choices.forEach(choice => {
+        const btn = document.createElement("button");
+        btn.style.backgroundColor = choice;
+        btn.textContent = "";
+        btn.onclick = () => checkAnswer(choice);
+        optionsDiv.appendChild(btn);
+    });
+}
+
+function checkAnswer(answer) {
+    if (answer === guess2Current.result) {
+        guess2Score++;
+        flashBackground("green");
+    } else {
+        flashBackground("red");
+    }
+    document.getElementById("score").textContent = "Score: " + guess2Score;
+    pickRandomCombination();
+}
+
+function flashBackground(color) {
+    document.body.style.background = color;
+    setTimeout(() => { document.body.style.background = "#ffcede"; }, 200);
+}
+</script>
+
+</body>
+</html>

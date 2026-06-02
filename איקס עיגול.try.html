@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<title>איקס עיגול נגד המחשב</title>
+<style>
+body{
+    font-family:Arial;
+    direction:rtl;
+    background:#f2f2f2;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    height:100vh;
+    margin:0;
+}
+h1{margin-bottom:10px;}
+#scoreboard{margin-bottom:20px;font-size:20px;}
+#board{
+    display:grid;
+    grid-template-columns:100px 100px 100px;
+    grid-template-rows:100px 100px 100px;
+    gap:5px;
+    background:#ccc;
+    padding:5px;
+}
+.cell{
+    width:100px;
+    height:100px;
+    background:white;
+    font-size:50px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    cursor:pointer;
+    border:2px solid #555;
+}
+.x{color:red;}
+.o{color:blue;}
+#message{margin-top:15px;font-size:20px;}
+button{margin-top:15px;padding:10px 20px;}
+</style>
+</head>
+<body>
+
+<h1>איקס עיגול נגד המחשב</h1>
+
+<div id="scoreboard">
+    את: <span id="playerScore">0</span> | מחשב: <span id="computerScore">0</span>
+</div>
+
+<div id="board"></div>
+<div id="message"></div>
+<button onclick="resetGame()">אתחול המשחק</button>
+
+<script>
+let board = ["","","","","","","","",""];
+let gameOver = false;
+
+let playerScore = 0;
+let computerScore = 0;
+
+const boardDiv = document.getElementById("board");
+const messageDiv = document.getElementById("message");
+const playerScoreSpan = document.getElementById("playerScore");
+const computerScoreSpan = document.getElementById("computerScore");
+
+// יצירת הלוח
+for(let i=0;i<9;i++){
+    let cell = document.createElement("div");
+    cell.classList.add("cell");
+    cell.addEventListener("click", ()=>makeMove(i));
+    boardDiv.appendChild(cell);
+}
+
+// מהלך השחקן
+function makeMove(index){
+    if(board[index]==="" && !gameOver){
+        board[index]="X";
+        boardDiv.children[index].textContent="X";
+        boardDiv.children[index].classList.add("x");
+        if(checkWin("X")){
+            messageDiv.textContent = `ניצחת! 🎉`;
+            playerScore++;
+            updateScore();
+            gameOver=true;
+            return;
+        } else if(board.every(cell=>cell!=="")){
+            messageDiv.textContent = "תיקו!";
+            gameOver=true;
+            return;
+        }
+        messageDiv.textContent = "תור המחשב...";
+        setTimeout(computerMove, 500);
+    }
+}
+
+// מהלך המחשב
+function computerMove(){
+    if(gameOver) return;
+    let emptyIndices = board.map((v,i)=>v===""?i:null).filter(v=>v!==null);
+    let choice = emptyIndices[Math.floor(Math.random()*emptyIndices.length)];
+    board[choice]="O";
+    boardDiv.children[choice].textContent="O";
+    boardDiv.children[choice].classList.add("o");
+    if(checkWin("O")){
+        messageDiv.textContent = "המחשב ניצח 😢";
+        computerScore++;
+        updateScore();
+        gameOver=true;
+        return;
+    } else if(board.every(cell=>cell!=="")){
+        messageDiv.textContent = "תיקו!";
+        gameOver=true;
+        return;
+    }
+    messageDiv.textContent = "תורך!";
+}
+
+// בדיקת ניצחון
+function checkWin(player){
+    const winPatterns = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+    ];
+    return winPatterns.some(pattern=>{
+        return board[pattern[0]]===player &&
+               board[pattern[1]]===player &&
+               board[pattern[2]]===player;
+    });
+}
+
+// עדכון ניקוד
+function updateScore(){
+    playerScoreSpan.textContent = playerScore;
+    computerScoreSpan.textContent = computerScore;
+}
+
+// אתחול המשחק
+function resetGame(){
+    board=["","","","","","","","",""];
+    gameOver=false;
+    for(let cell of boardDiv.children){
+        cell.textContent="";
+        cell.classList.remove("x");
+        cell.classList.remove("o");
+    }
+    messageDiv.textContent="תורך!";
+}
+
+messageDiv.textContent="תורך!";
+</script>
+
+</body>
+</html>

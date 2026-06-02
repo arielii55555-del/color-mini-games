@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<title>נחש את הצבע</title>
+
+<style>
+body {
+  font-family: Arial;
+  background: #111;
+  color: white;
+  text-align: center;
+  margin: 0;
+  overflow: hidden;
+}
+
+h1 { margin-top: 15px; }
+
+.color-box {
+  width: 120px;
+  height: 120px;
+  display: inline-block;
+  margin: 20px;
+  border-radius: 15px;
+  border: 3px solid white;
+}
+
+/* ✨ כפתורים עם אפקט בליטה */
+button {
+  margin: 8px;
+  padding: 15px;
+  font-size: 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: none;
+
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* בליטה בהובר */
+button:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.4);
+}
+
+/* נכון / טעות */
+body.correct { animation: correctFlash 0.5s; }
+body.wrong { animation: wrongFlash 0.5s; }
+
+@keyframes correctFlash {
+  0% { background:#111; }
+  50% { background:#1ecb5a; }
+  100% { background:#111; }
+}
+
+@keyframes wrongFlash {
+  0% { background:#111; }
+  50% { background:#e74c3c; }
+  100% { background:#111; }
+}
+
+/* רעידת מסך */
+.shake {
+  animation: shake 0.3s;
+}
+
+@keyframes shake {
+  0% { transform: translate(0,0); }
+  25% { transform: translate(5px,-5px); }
+  50% { transform: translate(-5px,5px); }
+  75% { transform: translate(5px,5px); }
+  100% { transform: translate(0,0); }
+}
+
+/* ⭐ כוכבים מפוזרים */
+.star {
+  position: fixed;
+  font-size: 18px;
+  color: gold;
+  pointer-events: none;
+  animation: starMove 1.2s ease-out forwards;
+}
+
+@keyframes starMove {
+  0% {
+    transform: translate(0,0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--mx), var(--my)) scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* 🎆 זיקוקים */
+.particle {
+  position: fixed;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: explode 1.8s forwards;
+  z-index: 9999;
+}
+
+@keyframes explode {
+  0% { transform: translate(0,0) scale(1); opacity:1; }
+  100% { transform: translate(var(--x), var(--y)) scale(0); opacity:0; }
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>🎨 נחש את הצבע</h1>
+
+<div>
+<button onclick="setLevel('easy')">קל</button>
+<button onclick="setLevel('medium')">בינוני</button>
+<button onclick="setLevel('hard')">קשה</button>
+</div>
+
+<div>
+<div class="color-box" id="c1"></div>
++
+<div class="color-box" id="c2"></div>
+</div>
+
+<div id="options"></div>
+<div id="score"></div>
+
+<script>
+
+/* כל הקוד שלך נשאר בדיוק אותו דבר */
+const colors = {
+  red:"#e74c3c", blue:"#3498db", yellow:"#f1c40f",
+  green:"#2ecc71", purple:"#9b59b6", orange:"#e67e22",
+  white:"#ecf0f1", black:"#2c3e50",
+  teal:"#1abc9c", brown:"#8e5a2b",
+  lightblue:"#85c1e9", indigo:"#5b2c6f",
+  lightyellow:"#f9e79f", darkgreen:"#145a32",
+  gray:"#7f8c8d", pink:"#ff6b81"
+};
+
+const levels = {
+  easy: [
+    {c:["red","yellow"], r:"orange"},
+    {c:["blue","yellow"], r:"green"},
+    {c:["red","blue"], r:"purple"},
+    {c:["red","white"], r:"pink"}
+  ],
+  medium: [
+    {c:["blue","green"], r:"teal"},
+    {c:["red","green"], r:"brown"},
+    {c:["blue","white"], r:"lightblue"}
+  ],
+  hard: [
+    {c:["black","white"], r:"gray"},
+    {c:["purple","blue"], r:"indigo"},
+    {c:["yellow","white"], r:"lightyellow"}
+  ]
+};
+
+let level="easy";
+let current=null;
+let score=0;
+let combo=0;
+
+function setLevel(l){
+  level=l;
+  score=0;
+  combo=0;
+  next();
+}
+
+function next(){
+  const arr=levels[level];
+  current=arr[Math.floor(Math.random()*arr.length)];
+
+  document.getElementById("c1").style.background=colors[current.c[0]];
+  document.getElementById("c2").style.background=colors[current.c[1]];
+
+  let opts=[current.r];
+
+  while(opts.length<3){
+    let r=arr[Math.floor(Math.random()*arr.length)].r;
+    if(!opts.includes(r)) opts.push(r);
+  }
+
+  opts.sort(()=>Math.random()-0.5);
+
+  let box=document.getElementById("options");
+  box.innerHTML="";
+
+  opts.forEach(o=>{
+    let b=document.createElement("button");
+    b.style.background=colors[o]||"#555";
+    b.onclick=()=>check(o);
+    box.appendChild(b);
+  });
+
+  update();
+}
+
+function check(ans){
+  if(ans===current.r){
+    combo++;
+    score += combo>=2 ? 2 : 1;
+
+    flash(true);
+    stars();
+    fireworks();
+    shake();
+
+  } else {
+    combo=0;
+    flash(false);
+  }
+
+  update();
+  next();
+}
+
+function update(){
+  document.getElementById("score").innerText =
+  `Score: ${score} | Combo: ${combo}`;
+}
+
+function flash(ok){
+  document.body.classList.add(ok?"correct":"wrong");
+  setTimeout(()=>document.body.classList.remove("correct","wrong"),500);
+}
+
+function shake(){
+  document.body.classList.add("shake");
+  setTimeout(()=>document.body.classList.remove("shake"),300);
+}
+
+function stars(){
+  for(let i=0;i<25;i++){
+    let s=document.createElement("div");
+    s.className="star";
+    s.innerText="⭐";
+
+    let x = Math.random() * window.innerWidth;
+    let y = Math.random() * window.innerHeight;
+
+    s.style.left = x + "px";
+    s.style.top = y + "px";
+
+    let angle = Math.random() * Math.PI * 2;
+    let dist = Math.random() * 150;
+
+    s.style.setProperty("--mx", Math.cos(angle)*dist + "px");
+    s.style.setProperty("--my", Math.sin(angle)*dist + "px");
+
+    document.body.appendChild(s);
+    setTimeout(()=>s.remove(),1200);
+  }
+}
+
+function fireworks(){
+  const c=["#ff4d4d","#ffd11a","#4dff88","#4da6ff","#ff4df2"];
+
+  for(let i=0;i<6;i++){
+    let cx=Math.random()*window.innerWidth;
+    let cy=Math.random()*window.innerHeight;
+
+    for(let j=0;j<12;j++){
+      let p=document.createElement("div");
+      p.className="particle";
+      p.style.background=c[Math.floor(Math.random()*c.length)];
+
+      p.style.left=cx+"px";
+      p.style.top=cy+"px";
+
+      let a=Math.random()*Math.PI*2;
+      let d=Math.random()*180;
+
+      p.style.setProperty("--x",Math.cos(a)*d+"px");
+      p.style.setProperty("--y",Math.sin(a)*d+"px");
+
+      document.body.appendChild(p);
+      setTimeout(()=>p.remove(),1800);
+    }
+  }
+}
+
+next();
+
+</script>
+</body>
+</html>

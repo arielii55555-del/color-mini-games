@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<title>חידון אימוג'ים</title>
+
+<style>
+body{
+    font-family:Arial;
+    direction:rtl;
+    text-align:center;
+    background:linear-gradient(135deg,#eef2ff,#ffe6f0);
+    margin:0;
+    padding:0;
+}
+
+.box{
+    background:white;
+    width:420px;
+    margin:30px auto;
+    padding:20px;
+    border-radius:15px;
+    box-shadow:0 5px 15px rgba(0,0,0,0.2);
+}
+
+.emoji{font-size:50px;margin:20px;}
+
+input,select{
+    width:90%;
+    padding:10px;
+    font-size:16px;
+    margin:8px 0;
+    border-radius:8px;
+}
+
+button{
+    padding:10px 15px;
+    margin:5px;
+    border:none;
+    border-radius:10px;
+    background:#6c5ce7;
+    color:white;
+    cursor:pointer;
+}
+
+button:hover{background:#4b3cc4;}
+
+#result{font-size:18px;margin-top:10px;}
+</style>
+</head>
+
+<body>
+
+<h1>🎯 חידון אימוג'ים</h1>
+
+<div class="box">
+
+<select id="category"></select>
+
+<div class="emoji" id="emoji">...</div>
+
+<input id="answer" placeholder="כתוב תשובה..." />
+
+<br>
+
+<button onclick="checkAnswer()">בדוק</button>
+<button onclick="loadQuestion()">שאלה הבאה</button>
+
+<div id="timer">⏱️</div>
+<div id="lives"></div>
+<div id="score">ניקוד: 0</div>
+<div id="result"></div>
+
+</div>
+
+<!-- 🎮 מסך פתיחה -->
+<div id="startScreen" style="
+position:fixed;top:0;left:0;width:100%;height:100%;
+background:linear-gradient(135deg,#6c5ce7,#ff6b81);
+display:flex;flex-direction:column;
+justify-content:center;
+align-items:center;
+color:white;
+z-index:999;
+">
+<h1>🎮 חידון אימוג'ים</h1>
+<p>סרטים, סדרות, מדינות ובראול סטארס!</p>
+
+<button onclick="startGame()" style="
+padding:15px 25px;
+font-size:18px;
+border:none;
+border-radius:10px;
+background:white;
+color:#333;
+cursor:pointer;
+">▶️ התחל משחק</button>
+</div>
+
+<script>
+
+const data = {
+
+movie:[
+{emojis:"🧸🚗🪀🤠",answer:"צעצוע של סיפור"},
+{emojis:"🦁👑🌅",answer:"מלך האריות"},
+{emojis:"⚡🧹🧙‍♂️🪄",answer:"הארי פוטר"},
+{emojis:"🕷️🕸️🗽",answer:"ספיידרמן"},
+{emojis:"🦇🌃🦸‍♂️",answer:"באטמן"},
+{emojis:"👸🏼🌼🪟",answer:"רפונזל"},
+{emojis:"🐼🥋🍜",answer:"קונג פו פנדה"}
+],
+
+series:[
+{emojis:"🐱🧡👦👦👦⭕⭕⭕",answer:"כראמל"},
+{emojis:"🧽🍍🌊🐙",answer:"בובספוג"},
+{emojis:"👧🗺️🎒🐒",answer:"דורה"},
+{emojis:"🛒🏪😂",answer:"קופה ראשית"}
+],
+
+country:[
+{emojis:"🥐🗼🇫🇷",answer:"צרפת"},
+{emojis:"⚽🌴🇧🇷",answer:"ברזיל"},
+{emojis:"🕍🍉🇮🇱",answer:"ישראל"},
+{emojis:"🐉🏮🇨🇳",answer:"סין"},
+{emojis:"💃🥘🇪🇸",answer:"ספרד"}
+],
+
+brawl:[
+{emojis:"🔫💜🌪️",answer:"שלי"},
+{emojis:"🐂💥🏹",answer:"בול"},
+{emojis:"🤠🔫🔥",answer:"קולט"},
+{emojis:"💣🧨👴",answer:"דינאמייק"},
+{emojis:"🤼‍♂️🔥💪",answer:"אל פרימו"},
+{emojis:"🌵💚🌸",answer:"ספייק"},
+{emojis:"🐻👧⚡",answer:"ניטה"},
+{emojis:"🐦☠️💉",answer:"קרואו"},
+{emojis:"🤖🧲⚡",answer:"8-ביט"},
+{emojis:"💃🪩🔥",answer:"אמז"},
+{emojis:"🎸🔥😈",answer:"ברוק"}
+]
+
+};
+
+const categories={
+movie:"סרטים",
+series:"סדרות",
+country:"מדינות",
+brawl:"בראול סטארס"
+};
+
+let current;
+let score=0;
+let lives=3;
+let timeLeft=30;
+let timer;
+let startTime=0;
+let gameStarted=false;
+let gameOver=false;
+
+function playCorrect(){
+new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg").play();
+}
+
+function playWrong(){
+new Audio("https://actions.google.com/sounds/v1/cartoon/boing.ogg").play();
+}
+
+function updateLives(){
+document.getElementById("lives").innerText="❤️".repeat(lives);
+}
+
+function init(){
+const select=document.getElementById("category");
+
+for(let k in categories){
+let o=document.createElement("option");
+o.value=k;
+o.innerText=categories[k];
+select.appendChild(o);
+}
+
+updateLives();
+document.getElementById("timer").innerText="⏱️ לחץ התחל משחק";
+}
+
+function startGame(){
+gameStarted=true;
+document.getElementById("startScreen").style.display="none";
+
+score=0;
+lives=3;
+gameOver=false;
+
+updateLives();
+document.getElementById("score").innerText="ניקוד: 0";
+
+loadQuestion();
+}
+
+function loadQuestion(){
+if(!gameStarted || gameOver) return;
+
+const cat=document.getElementById("category").value;
+const arr=data[cat];
+
+current=arr[Math.floor(Math.random()*arr.length)];
+
+document.getElementById("emoji").innerText=current.emojis;
+document.getElementById("answer").value="";
+document.getElementById("result").innerText="";
+
+startTime=Date.now();
+
+timeLeft=30;
+document.getElementById("timer").innerText="⏱️ זמן: 30";
+
+if(timer) clearInterval(timer);
+
+timer=setInterval(()=>{
+timeLeft--;
+document.getElementById("timer").innerText="⏱️ זמן: "+timeLeft;
+
+if(timeLeft<=0){
+clearInterval(timer);
+wrongTime();
+}
+},1000);
+}
+
+function wrongTime(){
+lives--;
+updateLives();
+playWrong();
+
+if(lives<=0){
+endGame();
+}else{
+setTimeout(loadQuestion,1000);
+}
+}
+
+function checkAnswer(){
+if(!gameStarted || gameOver) return;
+
+let user=document.getElementById("answer").value.trim();
+
+if(user===current.answer){
+
+let points=Math.max(1,Math.floor(10-((Date.now()-startTime)/1000)));
+score+=points;
+
+playCorrect();
+
+document.getElementById("result").innerText="✅ נכון! +"+points;
+
+}else{
+
+lives--;
+updateLives();
+playWrong();
+
+document.getElementById("result").innerText="❌ לא נכון";
+
+if(lives<=0){
+endGame();
+return;
+}
+}
+
+document.getElementById("score").innerText="ניקוד: "+score;
+}
+
+function endGame(){
+gameOver=true;
+clearInterval(timer);
+
+let rank="";
+
+if(score>=20)rank="🎉 מדהים!";
+else if(score>=10)rank="👍 טוב!";
+else rank="🔁 נסה שוב!";
+
+document.getElementById("emoji").innerText="🏁 סיום המשחק";
+document.getElementById("result").innerText=rank;
+
+setTimeout(()=>{
+document.getElementById("startScreen").style.display="flex";
+},2000);
+}
+
+document.getElementById("category").addEventListener("change",loadQuestion);
+
+init();
+
+</script>
+
+</body>
+</html>

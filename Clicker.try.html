@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<title>קליקר משודרג</title>
+
+<style>
+body{
+    font-family:Arial;
+    background:#f4f4f4;
+    direction:rtl;
+    margin:0;
+    overflow:hidden;
+}
+
+h1{
+    text-align:center;
+    margin-top:20px;
+}
+
+#timer{
+    font-size:26px;
+    text-align:center;
+    position:relative;
+    left:-80px;
+}
+
+#resetBtn{
+    display:block;
+    margin:15px auto;
+    width:220px;
+    background:crimson;
+    color:white;
+    border:none;
+    padding:10px;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:16px;
+}
+
+#main{
+    display:flex;
+    justify-content:center;
+    gap:50px;
+    margin-top:20px;
+}
+
+#circle{
+    width:170px;
+    height:170px;
+    border-radius:50%;
+    background:red;
+    cursor:pointer;
+    margin:auto;
+    position:relative;
+    transition:0.1s;
+}
+
+#circle:active{
+    transform:scale(0.92);
+}
+
+#info{
+    font-size:20px;
+    text-align:center;
+}
+
+/* 🔋 סוללת רמה */
+#levelBarContainer{
+    width:220px;
+    height:22px;
+    background:#ddd;
+    border-radius:10px;
+    margin:10px auto;
+    overflow:hidden;
+}
+
+#levelBar{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg,green,lime,orange);
+    transition:0.3s;
+}
+
+#shop{
+    width:270px;
+    background:white;
+    padding:15px;
+    border-radius:15px;
+    box-shadow:0 0 10px rgba(0,0,0,0.15);
+}
+
+button{
+    width:100%;
+    padding:12px;
+    margin-top:10px;
+    cursor:pointer;
+    border:none;
+    border-radius:10px;
+    background:#444;
+    color:white;
+    font-size:16px;
+    transition:0.2s;
+}
+
+button:hover{
+    background:#222;
+    transform:scale(1.03);
+}
+
+#message{
+    text-align:center;
+    color:red;
+    font-weight:bold;
+    margin-top:15px;
+    font-size:20px;
+}
+
+/* חלקיקים */
+.floatingText{
+    position:fixed;
+    font-size:20px;
+    font-weight:bold;
+    pointer-events:none;
+    animation:particleMove 900ms ease-out forwards;
+}
+
+@keyframes particleMove{
+
+    0%{
+        opacity:1;
+        transform:translate(0,0) scale(1);
+    }
+
+    100%{
+        opacity:0;
+        transform:translate(var(--x),var(--y)) scale(0.5);
+    }
+}
+
+/* שובל עכבר */
+.cursorSpark{
+    position:fixed;
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    pointer-events:none;
+    animation:fade 500ms ease-out forwards;
+}
+
+@keyframes fade{
+
+    0%{
+        opacity:0.8;
+        transform:scale(1);
+    }
+
+    100%{
+        opacity:0;
+        transform:scale(3);
+    }
+}
+</style>
+</head>
+
+<body>
+
+<h1>🎯 קליקר משודרג</h1>
+
+<div id="timer">זמן: 15</div>
+
+<button id="resetBtn" onclick="resetGame()">
+🔄 התחל מחדש
+</button>
+
+<div id="main">
+
+<div id="gameContainer">
+
+<div id="circle"></div>
+
+<div id="info">
+
+<p>
+ניקוד:
+<span id="score">0</span>
+</p>
+
+<p>
+🏆 שיא:
+<span id="highScore">0</span>
+</p>
+
+<p>
+⚡ רמה:
+<span id="level">1</span>
+</p>
+
+<div id="levelBarContainer">
+<div id="levelBar"></div>
+</div>
+
+<p>
+כדי לעלות רמה:
+<span id="nextLevelText">0</span>
+</p>
+
+<p>
+כוח לחיצה:
+<span id="clickPower">1</span>
+</p>
+
+</div>
+</div>
+
+<div id="shop">
+
+<button onclick="buyClickPower()">
+🎯 +2 כוח לחיצה (25)
+</button>
+
+<button onclick="buyAutoClick()">
+🤖 אוטו קליק
+</button>
+
+<button onclick="buyTime()">
+⏰ תוספת 10 שניות (100)
+</button>
+
+<div id="message"></div>
+
+</div>
+</div>
+
+<script>
+let score=0;
+let highScore=0;
+
+let level=1;
+
+let clickPower=1;
+let pendingPower=0;
+
+let autoClick=0;
+
+let timer;
+let timeLeft=15;
+
+/* 🔊 סאונדים מהאינטרנט */
+const clickSound = new Audio(
+"https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"
+);
+
+const buySound = new Audio(
+"https://assets.mixkit.co/active_storage/sfx/270/270-preview.mp3"
+);
+
+const errorSound = new Audio(
+"https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3"
+);
+
+const levelTargets=[
+0,
+50,150,300,500,750,
+1500,3000,5000,7500,
+10000,15000,25000,
+30000,50000,100000
+];
+
+const colors=[
+"red",
+"blue",
+"green",
+"purple",
+"orange",
+"hotpink",
+"gold",
+"cyan"
+];
+
+const circle=document.getElementById("circle");
+
+/* רמות */
+function updateLevel(){
+
+    let nextTarget=levelTargets[level];
+
+    if(level>=15){
+
+        document.getElementById("level").textContent="MAX";
+
+        document.getElementById("levelBar").style.width="100%";
+
+        document.getElementById("nextLevelText").textContent=
+        "סיימת את כל הרמות!";
+
+        return;
+    }
+
+    let prevTarget=
+    levelTargets[level-1] || 0;
+
+    if(score>=nextTarget){
+
+        level++;
+        nextTarget=levelTargets[level];
+    }
+
+    let progress=
+    ((score-prevTarget)/
+    (nextTarget-prevTarget))*100;
+
+    if(progress>100) progress=100;
+    if(progress<0) progress=0;
+
+    document.getElementById("level").textContent=level;
+
+    document.getElementById("levelBar").style.width=
+    progress+"%";
+
+    document.getElementById("nextLevelText").textContent=
+    score+" / "+nextTarget;
+}
+
+/* עדכון */
+function update(){
+
+    document.getElementById("score").textContent=score;
+
+    document.getElementById("highScore").textContent=
+    highScore;
+
+    document.getElementById("clickPower").textContent=
+    clickPower;
+
+    updateLevel();
+}
+
+/* הודעות */
+function showMessage(text){
+
+    const msg=
+    document.getElementById("message");
+
+    msg.textContent=text;
+
+    setTimeout(()=>{
+        msg.textContent="";
+    },1500);
+}
+
+/* חלקיקי ניקוד */
+function createPop(x,y,text){
+
+    const pop=document.createElement("div");
+
+    pop.className="floatingText";
+
+    pop.textContent=text;
+
+    pop.style.color=
+    colors[Math.floor(Math.random()*colors.length)];
+
+    pop.style.left=x+"px";
+    pop.style.top=y+"px";
+
+    const angle=Math.random()*Math.PI*2;
+
+    const dist=60+Math.random()*40;
+
+    pop.style.setProperty(
+    "--x",
+    Math.cos(angle)*dist+"px"
+    );
+
+    pop.style.setProperty(
+    "--y",
+    Math.sin(angle)*dist+"px"
+    );
+
+    document.body.appendChild(pop);
+
+    setTimeout(()=>{
+        pop.remove();
+    },900);
+}
+
+/* התחלת משחק */
+function startGame(){
+
+    score=0;
+    level=1;
+    timeLeft=15;
+
+    clearInterval(timer);
+
+    timer=setInterval(()=>{
+
+        timeLeft--;
+
+        /* אוטו קליקר */
+        for(let i=0;i<autoClick;i++){
+
+            score+=clickPower;
+
+            const rect=
+            circle.getBoundingClientRect();
+
+            const fakeX=
+            rect.left + rect.width/2;
+
+            const fakeY=
+            rect.top + rect.height/2;
+
+            for(let j=0;j<2;j++){
+
+                createPop(
+                    fakeX,
+                    fakeY,
+                    "+"+clickPower
+                );
+            }
+        }
+
+        update();
+
+        document.getElementById("timer").textContent=
+        "זמן: "+timeLeft;
+
+        if(timeLeft<=0){
+
+            clearInterval(timer);
+
+            if(score>highScore){
+                highScore=score;
+            }
+
+            setTimeout(startGame,1000);
+        }
+
+    },1000);
+}
+
+/* לחיצה רגילה */
+circle.addEventListener("click",(e)=>{
+
+    if(timeLeft<=0) return;
+
+    /* 🔊 סאונד לחיצה */
+    clickSound.currentTime=0;
+    clickSound.play();
+
+    if(pendingPower>0){
+
+        clickPower+=pendingPower;
+
+        pendingPower=0;
+    }
+
+    score+=clickPower;
+
+    update();
+
+    for(let i=0;i<3;i++){
+
+        createPop(
+            e.clientX,
+            e.clientY,
+            "+"+clickPower
+        );
+    }
+});
+
+/* שובל עכבר */
+document.addEventListener("mousemove",(e)=>{
+
+    const s=document.createElement("div");
+
+    s.className="cursorSpark";
+
+    s.style.left=e.clientX+"px";
+    s.style.top=e.clientY+"px";
+
+    s.style.background=
+    colors[Math.floor(Math.random()*colors.length)];
+
+    document.body.appendChild(s);
+
+    setTimeout(()=>{
+        s.remove();
+    },500);
+});
+
+/* קניית כוח */
+function buyClickPower(){
+
+    if(score>=25){
+
+        buySound.currentTime=0;
+        buySound.play();
+
+        score-=25;
+
+        pendingPower+=2;
+
+        update();
+
+    }else{
+
+        errorSound.currentTime=0;
+        errorSound.play();
+
+        showMessage("❌ אין מספיק ניקוד!");
+    }
+}
+
+/* קניית אוטו קליק */
+function buyAutoClick(){
+
+    let cost=10+(autoClick*10);
+
+    if(score>=cost){
+
+        buySound.currentTime=0;
+        buySound.play();
+
+        score-=cost;
+
+        autoClick++;
+
+        update();
+
+    }else{
+
+        errorSound.currentTime=0;
+        errorSound.play();
+
+        showMessage("❌ אין מספיק ניקוד!");
+    }
+}
+
+/* קניית זמן */
+function buyTime(){
+
+    if(score>=100){
+
+        buySound.currentTime=0;
+        buySound.play();
+
+        score-=100;
+
+        timeLeft+=10;
+
+        document.getElementById("timer").textContent=
+        "זמן: "+timeLeft;
+
+        update();
+
+    }else{
+
+        errorSound.currentTime=0;
+        errorSound.play();
+
+        showMessage("❌ אין מספיק ניקוד!");
+    }
+}
+
+/* ריסט */
+function resetGame(){
+
+    score=0;
+    highScore=0;
+
+    level=1;
+
+    clickPower=1;
+
+    pendingPower=0;
+
+    autoClick=0;
+
+    update();
+
+    startGame();
+}
+
+update();
+startGame();
+</script>
+
+</body>
+</html>

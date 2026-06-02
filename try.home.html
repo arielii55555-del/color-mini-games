@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<title>אתר המשחקים שלי</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #ffaccd;
+    color: white;
+    text-align: center;
+}
+
+header {
+    background: #582503;
+    padding: 20px;
+    font-size: 32px;
+    font-weight: bold;
+}
+
+#menu {
+    background: #582503;
+    padding: 15px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+button {
+    padding: 12px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #ffaccd;
+    color: black;
+    transition: 0.2s;
+}
+
+button:hover {
+    background: #ff4391;
+    transform: scale(1.05);
+}
+
+/* 🔥 כאן השיפור */
+#gameFrame {
+    display: block;
+    margin: 20px auto;
+    border: 4px solid #333;
+    border-radius: 12px;
+    background: black;
+
+    width: auto;
+    height: auto;
+
+    /* 👇 מונע מסך קטן מדי */
+    min-width: 900px;
+    min-height: 650px;
+
+    /* 👇 עדיין שומר שלא יחרוג מהמסך */
+    max-width: 95%;
+}
+</style>
+</head>
+
+<body>
+
+<header>🎮 אתר המשחקים שלי 🎮</header>
+
+<div id="menu">
+    <button onclick="loadGame('jump.html')"> תקפצו!</button>
+    <button onclick="loadGame('try.html')"> !שילוב צבעים</button>
+    <button onclick="loadGame('change colors.html')">משחק זיכרון מרקרים!</button>
+    <button onclick="loadGame('herring.html')">דג מלוח!</button>
+    <button onclick="loadGame('Clicker.try.html')">קליקר!</button>
+    <button onclick="loadGame('איקס עיגול.try.html')">איקס עיגול!</button>
+    <button onclick="loadGame('Variety of colors.html')"> נחש את הצבע!</button>
+</div>
+
+<iframe id="gameFrame" src=""></iframe>
+
+<script>
+function loadGame(file) {
+    document.getElementById("gameFrame").src = file;
+}
+
+// 🔥 התאמת גודל לפי המשחק
+window.addEventListener("message", (event) => {
+    if (event.data.type === "resize") {
+        const frame = document.getElementById("gameFrame");
+        frame.style.width = event.data.width + "px";
+        frame.style.height = event.data.height + "px";
+    }
+});
+
+// פוקוס אוטומטי למשחק
+const gameFrame = document.getElementById("gameFrame");
+gameFrame.addEventListener("load", () => {
+    gameFrame.contentWindow.focus();
+});
+</script>
+
+</body>
+</html>

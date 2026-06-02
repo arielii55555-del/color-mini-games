@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<title>Parkour Dash – משודרג</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: #111;
+  }
+  canvas {
+    display: block;
+    margin: 0 auto;
+    background: linear-gradient(to bottom, #1e1e1e, #333);
+    border: 3px solid #555;
+  }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas" width="800" height="400"></canvas>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const GRAVITY = 0.8;
+
+// ---------------- Player ----------------
+class Player {
+  constructor() {
+    this.x = 100;
+    this.y = 300;
+    this.width = 50;
+    this.height = 50;
+    this.velY = 0;
+    this.jumpForce = 15;
+    this.isGrounded = false;
+    this.trail = [];
+    this.color = "#00ffff";
+  }
+
+  update() {
+    this.velY += GRAVITY;
+    this.y += this.velY;
+
+    if(this.y + this.height > 350){
+      this.y = 350 - this.height;
+      this.velY = 0;
+      this.isGrounded = true;
+    } else {
+      this.isGrounded = false;
+    }
+
+    // Trail צבעוני מתקדם
+    this.trail.push({x:this.x, y:this.y});
+    if(this.trail.length > 15) this.trail.shift();
+  }
+
+  jump() {
+    if(this.isGrounded){
+      this.velY = -this.jumpForce;
+      createParticles(this.x + this.width/2, this.y + this.height); // פיצוץ קפיצה
+    }
+  }
+
+  draw() {
+    // Trail צבעוני
+    for(let i=0; i<this.trail.length; i++){
+      let t = this.trail[i];
+      let alpha = i/this.trail.length;
+      let color = `hsla(${(i*20)%360}, 100%, 50%, ${alpha})`;
+      ctx.fillStyle = color;
+      ctx.fillRect(t.x, t.y, this.width, this.height);
+    }
+    ctx.fillStyle = this.color;
+    ctx.fillRect(this.x, this.y, this.width, this.height);
+  }
+}
+
+// ---------------- Obstacles ----------------
+class Obstacle {
+  constructor(x, width, height) {
+    this.x = x;
+    this.width = width;
+    this.height = height;
+    this.y = 350 - height;
+    this.speed = 6;
+    this.color = "#ff5555";
+  }
+
+  update() {
+    this.x -= this.speed;
+  }
+
+  draw() {
+    ctx.fillStyle = this.color;
+    ctx.fillRect(this.x, this.y, this.width, this.height);
+  }
+}
+
+// ---------------- Particle System ----------------
+let particles = [];
+function createParticles(x,y){
+  for(let i=0;i<10;i++){
+    particles.push({
+      x: x,
+      y: y,
+      vx: (Math.random()-0.5)*4,
+      vy: Math.random()*-4,
+      alpha: 1,
+      size: Math.random()*5+2,
+      color: `hsl(${Math.random()*360},100%,50%)`
+    });
+  }
+}
+function updateParticles(){
+  for(let i=particles.length-1;i>=0;i--){
+    let p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.2; // gravity effect
+    p.alpha -= 0.03;
+    if(p.alpha <= 0) particles.splice(i,1);
+    else{
+      ctx.fillStyle = `rgba(${hexToRgb(p.color)},${p.alpha})`;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+      ctx.fill();
+    }
+  }
+}
+function hexToRgb(hsl){
+  return hsl; // ב-HSL אפשר להשאיר כך, זה יעבוד עם ctx.fillStyle
+}
+
+// ---------------- Game ----------------
+let player = new Player();
+let obstacles = [];
+let spawnTimer = 0;
+let score = 0;
+let level = 1;
+
+// ---------------- Game Loop ----------------
+function update() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // רקע דינמי – קווים זוהרים
+  for(let i=0;i<canvas.width;i+=80){
+    ctx.strokeStyle = `rgba(255,255,255,0.05)`;
+    ctx.beginPath();
+    ctx.moveTo(i,(Date.now()/10)%400);
+    ctx.lineTo(i+50,canvas.height);
+    ctx.stroke();
+  }
+
+  // עדכון שחקן
+  player.update();
+  player.draw();
+
+  // עדכון מכשולים
+  spawnTimer++;
+  if(spawnTimer > 90 - level*10){
+    let width = Math.random() * 30 + 20;
+    let height = Math.random() * 50 + 20;
+    obstacles.push(new Obstacle(canvas.width, width, height));
+    spawnTimer = 0;
+  }
+
+  for(let i=obstacles.length-1;i>=0;i--){
+    obstacles[i].update();
+    obstacles[i].draw();
+
+    // בדיקה לפגיעה
+    if(player.x < obstacles[i].x + obstacles[i].width &&
+       player.x + player.width > obstacles[i].x &&
+       player.y < obstacles[i].y + obstacles[i].height &&
+       player.y + player.height > obstacles[i].y){
+         alert("Game Over! Score: "+score);
+         document.location.reload();
+    }
+
+    if(obstacles[i].x + obstacles[i].width < 0){
+      obstacles.splice(i,1);
+      score++;
+      if(score%10===0) level++; // עלייה ברמה
+      player.color = `hsl(${score*20%360},100%,50%)`; // שינוי צבע השחקן
+    }
+  }
+
+  // עדכון חלקיקים
+  updateParticles();
+
+  // ציון ורמה
+  ctx.fillStyle = "#fff";
+  ctx.font = "20px Arial";
+  ctx.fillText("Score: "+score,10,30);
+  ctx.fillText("Level: "+level,10,60);
+
+  requestAnimationFrame(update);
+}
+
+// ---------------- קפיצה ----------------
+window.addEventListener('keydown',function(e){
+  if(e.code==="Space") player.jump();
+});
+
+// ---------------- הפעלת המשחק ----------------
+update();
+</script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<title>נחשי את צבע המרקר</title>
+
+<style>
+body {
+    background: #1e1e1e;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+}
+
+.marker {
+    width: 30px;
+    height: 90px;
+    margin: 20px auto;
+    border-radius: 6px;
+    position: relative;
+}
+
+.marker::before {
+    content: "";
+    position: absolute;
+    top: -18px;
+    width: 30px;
+    height: 18px;
+    background: #111;
+    border-radius: 5px 5px 0 0;
+}
+
+.marker::after {
+    content: "";
+    position: absolute;
+    bottom: -10px;
+    width: 30px;
+    height: 10px;
+    background: #ddd;
+    border-radius: 0 0 5px 5px;
+}
+
+.options {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+button {
+    padding: 10px 18px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    color: white;
+    transition: transform 0.15s, opacity 0.15s;
+}
+
+button:hover {
+    transform: scale(1.05);
+    opacity: 0.9;
+}
+
+#info {
+    font-size: 18px;
+    margin-top: 10px;
+}
+
+#message {
+    font-size: 20px;
+    margin-top: 15px;
+    min-height: 24px;
+}
+</style>
+</head>
+<body>
+
+<h1>🖍️ נחשי את צבע המרקר</h1>
+<div id="info"></div>
+<div id="message"></div>
+
+<div class="marker" id="marker"></div>
+<div class="options" id="options"></div>
+
+<script>
+const allColors = [
+    {name: "אדום", value: "red"},
+    {name: "כחול", value: "blue"},
+    {name: "ירוק", value: "green"},
+    {name: "צהוב", value: "yellow"},
+    {name: "סגול", value: "purple"},
+    {name: "כתום", value: "orange"},
+    {name: "ורוד", value: "pink"},
+    {name: "חום", value: "brown"}
+];
+
+let level = 1;
+let score = 0;
+let correctColor;
+
+const marker = document.getElementById("marker");
+const optionsDiv = document.getElementById("options");
+const info = document.getElementById("info");
+const message = document.getElementById("message");
+
+startLevel();
+
+function startLevel() {
+    optionsDiv.innerHTML = "";
+    message.textContent = "";
+
+    info.textContent = `רמה: ${level} | ניקוד: ${score}`;
+
+    const available = allColors.slice(0, Math.min(3 + level, allColors.length));
+    correctColor = randomFrom(available);
+    marker.style.background = correctColor.value;
+
+    let answers = shuffle([...available]).slice(0, 3);
+    if (!answers.includes(correctColor)) {
+        answers[Math.floor(Math.random() * answers.length)] = correctColor;
+    }
+
+    answers = shuffle(answers);
+
+    answers.forEach(color => {
+        const btn = document.createElement("button");
+        btn.textContent = color.name;
+
+        if (level < 10) {
+            btn.style.background = color.value;
+        } else {
+            const wrong = randomFrom(allColors.filter(c => c.value !== color.value));
+            btn.style.background = wrong.value;
+        }
+
+        btn.onclick = () => checkAnswer(color);
+        optionsDiv.appendChild(btn);
+    });
+}
+
+function checkAnswer(color) {
+    if (color === correctColor) {
+        message.textContent = "🎉 נכון! עלית רמה";
+        score += 10;
+        level++;
+        setTimeout(startLevel, 800);
+    } else {
+        message.textContent = "❌ לא נכון, נסי שוב";
+        score = Math.max(0, score - 3);
+    }
+}
+
+function randomFrom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
+</script>
+
+</body>
+</html>

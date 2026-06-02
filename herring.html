@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<title>דג מלוח</title>
+<style>
+body {
+    margin:0;
+    background:#111;
+    color:white;
+    font-family:Arial;
+    text-align:center;
+}
+canvas {
+    background:#222;
+    display:block;
+    margin:10px auto;
+    border:2px solid white;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🐟 דג מלוח</h1>
+ניקוד: <span id="score">0</span> |
+זמן: <span id="time">20</span> |
+מצב: <span id="state">ירוק</span>
+
+<canvas id="game" width="600" height="300"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const scoreEl = document.getElementById("score");
+const timeEl = document.getElementById("time");
+const stateEl = document.getElementById("state");
+
+let player = {x:20,y:140,size:20,speed:3};
+let finishX = 560;
+
+let keys = {};
+let state = "green";
+let score = 0;
+let time = 20;
+let running = true;
+let levelSpeed = 2000;
+
+document.onkeydown = e => keys[e.key]=true;
+document.onkeyup = e => keys[e.key]=false;
+
+function switchState(){
+    if(!running) return;
+    state = (state === "green") ? "red" : "green";
+    stateEl.innerText = state === "green" ? "ירוק" : "אדום";
+    stateEl.style.color = state;
+}
+
+function resetRound(win=false){
+    if(win){
+        score++;
+        levelSpeed = Math.max(600, levelSpeed - 150);
+    }
+    scoreEl.innerText = score;
+
+    player.x = 20;
+    time = 20;
+    timeEl.innerText = time;
+    running = true;
+}
+
+function end(msg){
+    running = false;
+    setTimeout(()=>{
+        alert(msg);
+        resetRound(false);
+    },50);
+}
+
+function win(){
+    running = false;
+    setTimeout(()=>{
+        alert("ניצחת!");
+        resetRound(true);
+    },50);
+}
+
+function update(){
+    if(!running) return;
+
+    let moving = keys["ArrowRight"] || keys["ArrowLeft"] || keys["ArrowUp"] || keys["ArrowDown"];
+
+    if(state === "red" && moving){
+        end("זזת באדום!");
+        return;
+    }
+
+    if(state === "green"){
+        if(keys["ArrowRight"]) player.x += player.speed;
+        if(keys["ArrowLeft"]) player.x -= player.speed;
+        if(keys["ArrowUp"]) player.y -= player.speed;
+        if(keys["ArrowDown"]) player.y += player.speed;
+    }
+
+    player.x = Math.max(0, Math.min(canvas.width-player.size, player.x));
+    player.y = Math.max(0, Math.min(canvas.height-player.size, player.y));
+
+    if(player.x >= finishX) win();
+}
+
+function draw(){
+    ctx.clearRect(0,0,600,300);
+
+    // קו סיום
+    ctx.fillStyle="white";
+    ctx.fillRect(finishX,0,5,300);
+
+    // שחקן
+    ctx.fillStyle="cyan";
+    ctx.fillRect(player.x,player.y,player.size,player.size);
+
+    // רקע מצב
+    if(state==="red"){
+        ctx.fillStyle="rgba(255,0,0,0.2)";
+        ctx.fillRect(0,0,600,300);
+    }
+}
+
+function loop(){
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+setInterval(switchState, levelSpeed);
+
+setInterval(()=>{
+    if(!running) return;
+    time--;
+    timeEl.innerText=time;
+    if(time<=0) end("נגמר הזמן!");
+},1000);
+
+loop();
+</script>
+
+</body>
+</html>

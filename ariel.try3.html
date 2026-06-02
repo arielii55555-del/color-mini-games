@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #ffcede;
+    color: rgb(255, 14, 98);
+    text-align: center;
+}
+.hidden { display: none; }
+
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    margin: 5px;
+}
+.menu button { background: #ff2c64; color: white; }
+.back { background: #ff0059; color: rgb(255, 171, 193); margin-top: 20px; }
+
+.grid { display: grid; gap: 10px; justify-content: center; margin-top: 20px; }
+.card { width: 60px; height: 60px; background: #555; border-radius: 8px; cursor: pointer; }
+
+#clickBtn {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    font-size: 22px;
+    color: white;
+}
+
+#catchColorArea { position: relative; width: 400px; height: 400px; margin: 20px auto; border: 2px solid white; }
+#movingColor { width: 50px; height: 50px; position: absolute; border-radius: 8px; cursor: pointer; }
+
+#gameCanvas { display: block; margin: 20px auto; background: linear-gradient(to bottom,#1e1e1e,#333); border: 3px solid #555; }
+
+.color-box {
+    display: inline-block;
+    width: 120px;
+    height: 120px;
+    margin: 20px;
+    border: 3px solid #fff;
+    line-height: 120px;
+    font-weight: bold;
+    font-size: 20px;
+    color: #fff;
+    border-radius: 10px;
+}
+</style>
+</head>
+<body>
+
+<h1>איזה משחק באלך לשחק?</h1>
+
+<div id="menu" class="menu">
+    
+    <button id="btnClicker">קליקר</button>
+    
+</div>
+
+<div id="clickerGame" class="hidden">
+    <h2>קליקר</h2>
+    <div id="clickInfo"></div>
+    <div id="clickTimer">זמן: 60</div>
+    <button id="clickBtn">לחצי!</button>
+    <div id="clickShop"></div>
+    <button class="back" id="backClicker">חזרה לתפריט</button>
+</div>
+
+<script>
+const colors = ["red","blue","green","yellow","purple","orange","pink","brown","cyan","lime","magenta","gold"];
+
+/* ===== קליקר + טיימר ===== */
+let clicks = 0, clickLevel = 1;
+let clickTime = 60;
+let clickTimerInterval = null;
+
+const clickBtn = document.getElementById("clickBtn");
+const clickInfo = document.getElementById("clickInfo");
+const clickTimerDiv = document.getElementById("clickTimer");
+
+clickBtn.onclick = () => {
+    clicks++;
+    if (clicks % 20 === 0) {
+        clickLevel++;
+        clickBtn.style.background = colors[clickLevel % colors.length];
+    }
+    updateClicker();
+};
+
+function updateClicker() {
+    clickInfo.textContent = `רמה: ${clickLevel} | לחיצות: ${clicks}`;
+    if (!clickBtn.style.background) clickBtn.style.background = colors[0];
+}
+
+function startClickerTimer() {
+    clearInterval(clickTimerInterval);
+    clickTime = 60;
+    clickBtn.disabled = false;
+    clickTimerDiv.textContent = "זמן: 60";
+
+    clickTimerInterval = setInterval(() => {
+        clickTime--;
+        clickTimerDiv.textContent = "זמן: " + clickTime;
+
+        if (clickTime <= 0) {
+            clearInterval(clickTimerInterval);
+            clickBtn.disabled = true;
+            alert("הזמן נגמר! לחיצות: " + clicks);
+        }
+    }, 1000);
+}
+
+/* ===== ניווט ===== */
+document.getElementById("btnClicker").onclick = () => {
+    document.getElementById("menu").classList.add("hidden");
+    document.getElementById("clickerGame").classList.remove("hidden");
+    clicks = 0;
+    clickLevel = 1;
+    updateClicker();
+    startClickerTimer();
+};
+
+document.getElementById("backClicker").onclick = () => {
+    document.getElementById("clickerGame").classList.add("hidden");
+    document.getElementById("menu").classList.remove("hidden");
+    clearInterval(clickTimerInterval);
+};
+</script>
+
+</body>
+</html>

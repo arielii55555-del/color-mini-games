@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>משחק Sabilo</title>
+<style>
+    body {
+        font-family: Arial;
+        text-align: center;
+        background: #f5f5f5;
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        margin-top: 40px;
+    }
+
+    #game {
+        text-align: center;
+    }
+
+    #marker {
+        width: 150px;
+        height: 300px;
+        border-radius: 20px;
+        cursor: pointer;
+        margin-bottom: 20px;
+        transition: 0.3s;
+        background-size: cover;
+        background-position: center;
+    }
+
+    #shop {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        width: 200px;
+        height: fit-content;
+        box-sizing: border-box;
+    }
+
+    button {
+        width: 100%;
+        padding: 10px;
+        margin-top: 10px;
+        cursor: pointer;
+    }
+</style>
+</head>
+<body>
+
+<div id="game">
+    <div id="marker"></div>
+    <div>לחיצות: <span id="clicks">0</span></div>
+    <div>רמה: <span id="level">0</span></div>
+</div>
+
+<div id="shop">
+    <h3>חנות</h3>
+    <p>קנה רמה 1 (מחיר: 30 לחיצות)</p>
+    <button onclick="buyClicks()">קנה</button>
+</div>
+
+<script>
+
+// משתנים
+let clicks = 0;
+let level = 0;
+
+// רשימת תמונות לפי רמות (כל 5 רמות תחליף)
+const markerImages = [
+    "marker1.jpg",
+    "marker2.jpg",
+    "marker3.jpg",
+    "marker4.jpg",
+    "marker5.jpg",
+    "marker6.jpg",
+    "marker7.jpg"
+];
+
+// בחירת תמונה לפי כל 5 רמות
+function markerImage(level) {
+    let index = Math.floor(level / 5);
+    if (index >= markerImages.length) index = markerImages.length - 1;
+    return markerImages[index];
+}
+
+// עדכון תמונת המרקר
+function updateMarker() {
+    document.getElementById("marker").style.backgroundImage =
+        `url('${markerImage(level)}')`;
+}
+
+// לחיצה על המרקר
+document.getElementById("marker").onclick = function () {
+    clicks++;
+    level = Math.floor(clicks / 10); // כל 10 לחיצות = רמה אחת
+    updateUI();
+};
+
+// עדכון UI
+function updateUI() {
+    document.getElementById("clicks").innerText = clicks;
+    document.getElementById("level").innerText = level;
+    updateMarker();
+}
+
+// קנייה בחנות
+function buyClicks() {
+    if (clicks >= 15) {
+        clicks -= 15;
+        clicks += 20;
+        updateUI();
+    } else {
+        alert("אין מספיק לחיצות!");
+    }
+}
+
+// הפעלה ראשונית
+updateMarker();
+
+</script>
+
+</body>
+</html>

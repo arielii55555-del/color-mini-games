@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<title>משחק ערבוב צבעים עם trail ו-victory glow</title>
+<style>
+body{
+    text-align:center;
+    font-family:Arial;
+    background:#f4f4f4;
+    transition: background 0.5s ease;
+    overflow: hidden;
+}
+#levelBox{
+    font-size:28px;
+    font-weight:bold;
+    margin-top:10px;
+    display:inline-block;
+}
+#levelBox.pulse {
+    animation: levelPulse 0.5s;
+}
+@keyframes levelPulse {
+    0% { transform: scale(1); color: black; }
+    50% { transform: scale(1.3); color: green; }
+    100% { transform: scale(1); color: black; }
+}
+#difficultyButtons button{
+    margin:10px;
+    padding:15px 25px;
+    font-size:20px;
+    font-weight:bold;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    transition: transform 0.2s;
+}
+#difficultyButtons button:hover{
+    transform: scale(1.1);
+}
+#gameContainer{ position:relative; display:inline-block; margin-top:10px; }
+canvas{ border-radius:50%; cursor:pointer; }
+#cursorCircle{
+    position:absolute;
+    width:30px; height:30px;
+    border-radius:50%;
+    border:3px solid black;
+    background:white;
+    pointer-events:none;
+    transform:translate(-50%,-50%);
+}
+button.black{background:black;color:white; padding:12px 18px; font-size:16px;}
+button.reset{background:#444;color:white; padding:12px 18px; font-size:16px;}
+#targetBox{
+    margin:10px auto;
+    border-radius:10px;
+    border:4px solid black;
+    box-shadow:0 0 25px 10px rgba(0,0,0,0.5);
+    transition:all 0.3s ease;
+    animation: pulse 1.2s infinite;
+}
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow:0 0 25px 10px rgba(0,0,0,0.5); }
+    50% { transform: scale(1.05); box-shadow:0 0 30px 12px rgba(0,0,0,0.6); }
+    100% { transform: scale(1); box-shadow:0 0 25px 10px rgba(0,0,0,0.5); }
+}
+/* Victory Glow */
+#targetBox.victory {
+    animation: victoryGlow 0.8s forwards;
+}
+@keyframes victoryGlow {
+    0% { box-shadow: 0 0 25px 10px rgba(0,0,0,0.5); transform: scale(1); }
+    50% { box-shadow: 0 0 80px 25px rgba(255,255,255,0.9); transform: scale(1.15); }
+    100% { box-shadow: 0 0 25px 10px rgba(0,0,0,0.5); transform: scale(1); }
+}
+</style>
+</head>
+<body>
+
+<h1>🎨 ערבוב צבעים עם trail ו-victory glow 🎨</h1>
+
+<div id="difficultyButtons">
+    <button onclick="setDifficulty('קל')">קל</button>
+    <button onclick="setDifficulty('בינוני')">בינוני</button>
+    <button onclick="setDifficulty('קשה')">קשה</button>
+</div>
+
+<div id="levelBox">שלב 1</div>
+
+<h2>צבע מטרה:</h2>
+<div id="targetBox"></div>
+
+<div id="gameContainer">
+    <canvas id="colorWheel" width="400" height="400"></canvas>
+    <div id="cursorCircle"></div>
+</div>
+
+<div>
+    <button class="black" onclick="addBlack()">שחור (<span id="blackCount">0%</span>)</button>
+    <button class="reset" onclick="resetMix()">איפוס</button>
+</div>
+
+<h2 id="result"></h2>
+
+<script>
+const canvas = document.getElementById("colorWheel");
+const ctx = canvas.getContext("2d");
+const cursorCircle = document.getElementById("cursorCircle");
+const targetBox = document.getElementById("targetBox");
+const gameContainer = document.getElementById("gameContainer");
+
+let level = 1;
+let difficulty = 'קל';
+let currentTarget;
+let currentBaseColor = {r:255,g:255,b:255}; 
+let blackPercent = 0;
+
+const colorsByDifficulty = {
+    'קל': [
+        {r:255,g:0,b:0}, {r:0,g:0,b:255}, {r:255,g:255,b:0}, {r:255,g:165,b:0}
+    ],
+    'בינוני': [
+        {r:128,g:0,b:128}, {r:0,g:128,b:0}, {r:0,g:255,b:255}, {r:255,g:192,b:203}
+    ],
+    'קשה': [
+        {r:210,g:180,b:140}, {r:119,g:136,b:153}, {r:245,g:245,b:220}, {r:176,g:196,b:222}
+    ]
+};
+
+const targetSizes = { 'קל':200, 'בינוני':160, 'קשה':120 };
+const toleranceByDifficulty = { 'קל':120, 'בינוני':80, 'קשה':50 };
+
+function setDifficulty(levelName){
+    difficulty = levelName;
+    level = 1;
+    document.getElementById("levelBox").innerText = "שלב " + level;
+    newRound();
+}
+
+function newRound(){
+    resetMix();
+    const arr = colorsByDifficulty[difficulty];
+    currentTarget = arr[Math.floor(Math.random()*arr.length)];
+    targetBox.style.background = `rgb(${currentTarget.r},${currentTarget.g},${currentTarget.b})`;
+    const size = targetSizes[difficulty];
+    targetBox.style.width = size + "px";
+    targetBox.style.height = size + "px";
+}
+
+// ציור גלגל צבעים
+for(let angle=0; angle<360; angle++){
+    const startAngle = (angle-1)*Math.PI/180;
+    const endAngle = angle*Math.PI/180;
+    ctx.beginPath();
+    ctx.moveTo(200,200);
+    ctx.arc(200,200,200,startAngle,endAngle);
+    ctx.closePath();
+    ctx.fillStyle = "hsl("+angle+",100%,50%)";
+    ctx.fill();
+}
+
+// שכבת לבן במרכז
+const gradientWhite = ctx.createRadialGradient(200,200,0,200,200,200);
+gradientWhite.addColorStop(0,"rgba(255,255,255,1)");
+gradientWhite.addColorStop(0.4,"rgba(255,255,255,0.6)");
+gradientWhite.addColorStop(1,"rgba(255,255,255,0)");
+ctx.beginPath();
+ctx.arc(200,200,200,0,Math.PI*2);
+ctx.fillStyle = gradientWhite;
+ctx.fill();
+
+// שכבת שחור חיצונית
+const gradientBlack = ctx.createRadialGradient(200,200,160,200,200,200);
+gradientBlack.addColorStop(0,"rgba(0,0,0,0)");
+gradientBlack.addColorStop(0.7,"rgba(0,0,0,0.3)");
+gradientBlack.addColorStop(1,"rgba(0,0,0,0.6)");
+ctx.beginPath();
+ctx.arc(200,200,200,0,Math.PI*2);
+ctx.fillStyle = gradientBlack;
+ctx.fill();
+
+canvas.addEventListener("mousemove",function(e){
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    cursorCircle.style.left = (x - rect.left)+"px";
+    cursorCircle.style.top = (y - rect.top)+"px";
+
+    // Trail מדויק בתוך ה-gameContainer
+    createTrailParticle(x,y);
+});
+
+canvas.addEventListener("click", function(e){
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const dx = x - 200;
+    const dy = y - 200;
+    if(Math.sqrt(dx*dx+dy*dy) > 200) return;
+    const pixel = ctx.getImageData(x,y,1,1).data;
+    currentBaseColor = {r:pixel[0], g:pixel[1], b:pixel[2]};
+    mixColor();
+});
+
+function addBlack(){
+    if(blackPercent>=100) return;
+    blackPercent +=1;
+    document.getElementById("blackCount").innerText = blackPercent + "%";
+    mixColor();
+}
+
+function mixColor(){
+    let factor = 1 - blackPercent/100;
+    let r = Math.floor(currentBaseColor.r * factor);
+    let g = Math.floor(currentBaseColor.g * factor);
+    let b = Math.floor(currentBaseColor.b * factor);
+    document.body.style.background = `rgb(${r},${g},${b})`;
+    checkWin(r,g,b);
+}
+
+// ----------------- אפקטי שלב -----------------
+function checkWin(r,g,b){
+    const distance = Math.sqrt(
+        Math.pow(r-currentTarget.r,2) + Math.pow(g-currentTarget.g,2) + Math.pow(b-currentTarget.b,2)
+    );
+    if(distance < toleranceByDifficulty[difficulty]){
+        document.getElementById("result").innerText="🎉 קרובה מספיק! עברת שלב!";
+        const levelBox = document.getElementById("levelBox");
+        levelBox.classList.add("pulse");
+        targetBox.classList.add("victory");
+        setTimeout(()=> levelBox.classList.remove("pulse"),500);
+        setTimeout(()=> targetBox.classList.remove("victory"),800);
+
+        createParticles(); // פיצוץ נוצץ
+        setTimeout(()=>{
+            document.getElementById("result").innerText="";
+            level++;
+            levelBox.innerText = "שלב " + level;
+            newRound();
+        },1500);
+    }
+}
+
+// ----------------- חלקיקים נוצצים ובולטים -----------------
+function createParticles(){
+    const particleCount = 50;
+    for(let i=0;i<particleCount;i++){
+        const particle = document.createElement("div");
+        particle.style.position="absolute";
+        particle.style.width="18px";
+        particle.style.height="18px";
+        particle.style.borderRadius="50%";
+        particle.style.background=`white`;
+        particle.style.boxShadow="0 0 25px 10px white, 0 0 40px 15px rgba(255,255,255,0.6)";
+        particle.style.left = targetBox.offsetLeft + targetBox.offsetWidth/2 + "px";
+        particle.style.top = targetBox.offsetTop + targetBox.offsetHeight/2 + "px";
+        particle.style.opacity = 0; 
+        particle.style.pointerEvents="none";
+        particle.style.transition = "all 1.2s ease-out, opacity 0.5s ease-in";
+        document.body.appendChild(particle);
+
+        setTimeout(()=> particle.style.opacity = 1, 50);
+
+        const angle = Math.random()*2*Math.PI;
+        const radius = 250 + Math.random()*50;
+        const x = radius*Math.cos(angle);
+        const y = radius*Math.sin(angle);
+
+        setTimeout(()=>{
+            particle.style.left = parseFloat(particle.style.left)+x+"px";
+            particle.style.top = parseFloat(particle.style.top)+y+"px";
+            particle.style.opacity=0;
+        },50);
+
+        setTimeout(()=> particle.remove(),1500);
+    }
+}
+
+// ----------------- trail אחרי העכבר בתוך ה-gameContainer -----------------
+function createTrailParticle(xScreen, yScreen){
+    const containerRect = gameContainer.getBoundingClientRect();
+    const trail = document.createElement("div");
+    trail.style.position="absolute";
+    trail.style.width="10px";
+    trail.style.height="10px";
+    trail.style.borderRadius="50%";
+    trail.style.background="rgba(255,255,255,0.8)";
+    trail.style.left = (xScreen - containerRect.left) + "px";
+    trail.style.top = (yScreen - containerRect.top) + "px";
+    trail.style.pointerEvents="none";
+    trail.style.opacity = 1;
+    trail.style.transition = "all 0.6s ease-out";
+    gameContainer.appendChild(trail);
+
+    setTimeout(()=>{
+        trail.style.opacity=0;
+        trail.style.transform = "translate("+(Math.random()*30-15)+"px,"+(Math.random()*30-15)+"px)";
+    },10);
+
+    setTimeout(()=> trail.remove(),600);
+}
+
+// -------------------------
+function resetMix(){
+    currentBaseColor={r:255,g:255,b:255};
+    blackPercent=0;
+    document.getElementById("blackCount").innerText="0%";
+    document.body.style.background="#f4f4f4";
+}
+
+newRound();
+</script>
+
+</body>
+</html>

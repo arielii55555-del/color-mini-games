@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+
+        <title>Hi</title>
+    </head>
+    <body>
+        <label for="nameinput">Please enter your name:</label>
+        <input type="text" id="nameinput">
+        <button onclick="greet()">Press to say Hi !</button>
+        <br>
+        <h3 id="greetTag">?</h3>
+    </body>
+    <script>
+        function greet() {
+            const name = document.getElementById("nameinput").value;
+            const greetTag = document.getElementById("greetTag");
+            greetTag.innerHTML = "Hi " + name + "! " + "(^v^)";
+
+        }
+        
+    </script>
+</html>

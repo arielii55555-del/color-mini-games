@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+    <style>
+        #wizard
+        {
+            width: 150px;
+            height: 150px;
+            position: absolute;
+            top: 10vh;
+        }
+
+.container{
+    min-width: 90vh;
+    min-height: 85vh;
+    margin: 10px;
+    background-color: rgb(255, 65, 100);
+    padding: 5vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+</style>
+     
+<head>
+    <title>Wizard Simulater</title>
+</head>
+
+<body>
+    <div class="container">
+        <img id="wizard" src="cat.png">
+        <button onclick="teleport()">Teleport</button>
+    </div>
+</body>
+
+<script>
+    const maxHeight =window.innerHeight -150;
+    const maxWidth = window.innerWidth - 150;
+
+
+    function teleport() {
+        const wizard = document.getElementById("wizard");
+
+        const randomTopPosition = Math.floor(Math.random() * maxHeight);
+        const randomLeftPosition = Math.floor(Math.random() * maxWidth);
+
+        wizard.style.top = randomTopPosition + 'px' ;
+        wizard.style.left = randomLeftPosition + 'px' ;
+    }
+
+</script>
+
+</html>

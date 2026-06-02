@@ -1,0 +1,976 @@
+<!--
+🔥 אש ומים - גרסת MULTI LEVEL
+כולל:
+✔ כמה שלבים
+✔ כל שלב קשה יותר
+✔ יותר פלטפורמות
+✔ יותר יהלומים
+✔ מעבר שלב אוטומטי
+✔ טיימר
+✔ מסך ניצחון
+✔ שליטה מלאה
+-->
+
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>אש ומים - Multi Level</title>
+
+<style>
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  overflow:hidden;
+  background:
+    radial-gradient(circle at top,#1e2f55,#070b12 70%);
+  font-family:Arial;
+}
+
+canvas{
+  display:block;
+  margin:auto;
+  background:
+    linear-gradient(to bottom,#17243d,#0c1017);
+
+  border:4px solid rgba(255,255,255,.08);
+
+  box-shadow:
+    0 0 40px rgba(0,0,0,.7),
+    inset 0 0 40px rgba(255,255,255,.05);
+}
+
+#ui{
+
+  position:fixed;
+  top:15px;
+  right:20px;
+
+  color:white;
+  font-size:22px;
+  font-weight:bold;
+
+  text-shadow:0 0 10px black;
+}
+
+#winScreen{
+
+  position:fixed;
+
+  inset:0;
+
+  display:none;
+
+  justify-content:center;
+  align-items:center;
+
+  background:rgba(0,0,0,.8);
+
+  color:white;
+
+  flex-direction:column;
+
+  z-index:10;
+}
+
+#winScreen h1{
+  font-size:60px;
+  color:#00ffae;
+}
+
+#winScreen p{
+  margin-top:15px;
+  font-size:28px;
+}
+
+#winScreen button{
+
+  margin-top:25px;
+
+  padding:14px 28px;
+
+  border:none;
+
+  border-radius:14px;
+
+  background:#00ffae;
+
+  color:black;
+
+  font-size:20px;
+
+  font-weight:bold;
+
+  cursor:pointer;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="ui">
+  שלב: <span id="levelText">1</span>
+</div>
+
+<div id="winScreen">
+
+  <h1>ניצחת 🎉</h1>
+
+  <p id="finishTime"></p>
+
+  <button onclick="location.reload()">
+    שחקי שוב
+  </button>
+
+</div>
+
+<canvas id="game" width="1100" height="600"></canvas>
+
+<script>
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const G = 0.5;
+
+let keys = {};
+let particles = [];
+
+let currentLevel = 0;
+
+let gameFinished = false;
+
+const startTime = Date.now();
+
+/* =====================
+   מקלדת
+===================== */
+
+document.addEventListener("keydown",e=>{
+
+  keys[e.code] = true;
+
+});
+
+document.addEventListener("keyup",e=>{
+
+  keys[e.code] = false;
+
+});
+
+/* =====================
+   שחקן
+===================== */
+
+function Player(x,y,color,type,controls){
+
+  return{
+
+    x,y,
+
+    w:34,
+    h:48,
+
+    vx:0,
+    vy:0,
+
+    color,
+    type,
+
+    controls,
+
+    onGround:false,
+
+    anim:0
+  };
+}
+
+const fire = Player(
+
+  100,
+  100,
+
+  "#ff5a2f",
+
+  "fire",
+
+  {
+
+    left:"KeyA",
+    right:"KeyD",
+    jump:"KeyW"
+  }
+);
+
+const water = Player(
+
+  170,
+  100,
+
+  "#45b7ff",
+
+  "water",
+
+  {
+
+    left:"ArrowLeft",
+    right:"ArrowRight",
+    jump:"ArrowUp"
+  }
+);
+
+const players = [fire,water];
+
+/* =====================
+   שלבים
+===================== */
+
+const levels = [
+
+/* ========= LEVEL 1 ========= */
+
+{
+
+platforms:[
+
+{x:0,y:560,w:1100,h:40},
+
+{x:180,y:430,w:240,h:18},
+
+{x:520,y:330,w:240,h:18},
+
+{x:850,y:240,w:180,h:18}
+],
+
+fireDiamonds:[
+
+{x:250,y:390,collected:false},
+{x:920,y:200,collected:false}
+],
+
+waterDiamonds:[
+
+{x:600,y:290,collected:false},
+{x:980,y:200,collected:false}
+],
+
+doors:[
+
+{x:60,y:490,w:45,h:70,type:"fire"},
+{x:980,y:490,w:45,h:70,type:"water"}
+]
+
+},
+
+/* ========= LEVEL 2 ========= */
+
+{
+
+platforms:[
+
+{x:0,y:560,w:1100,h:40},
+
+{x:120,y:470,w:150,h:18},
+
+{x:350,y:400,w:130,h:18},
+
+{x:560,y:320,w:130,h:18},
+
+{x:770,y:240,w:130,h:18},
+
+{x:940,y:170,w:100,h:18}
+],
+
+fireDiamonds:[
+
+{x:170,y:430,collected:false},
+{x:600,y:280,collected:false},
+{x:980,y:130,collected:false}
+],
+
+waterDiamonds:[
+
+{x:400,y:360,collected:false},
+{x:820,y:200,collected:false},
+{x:1020,y:130,collected:false}
+],
+
+doors:[
+
+{x:50,y:490,w:45,h:70,type:"fire"},
+{x:1000,y:490,w:45,h:70,type:"water"}
+]
+
+},
+
+/* ========= LEVEL 3 ========= */
+
+{
+
+platforms:[
+
+{x:0,y:560,w:1100,h:40},
+
+{x:90,y:500,w:100,h:16},
+
+{x:250,y:430,w:100,h:16},
+
+{x:430,y:360,w:100,h:16},
+
+{x:620,y:290,w:100,h:16},
+
+{x:810,y:220,w:100,h:16},
+
+{x:980,y:150,w:80,h:16}
+],
+
+fireDiamonds:[
+
+{x:120,y:460,collected:false},
+{x:470,y:320,collected:false},
+{x:1000,y:110,collected:false}
+],
+
+waterDiamonds:[
+
+{x:290,y:390,collected:false},
+{x:670,y:250,collected:false},
+{x:1040,y:110,collected:false}
+],
+
+doors:[
+
+{x:40,y:490,w:45,h:70,type:"fire"},
+{x:1010,y:490,w:45,h:70,type:"water"}
+]
+
+}
+
+];
+
+/* =====================
+   שלב נוכחי
+===================== */
+
+let level = levels[currentLevel];
+
+/* =====================
+   חלקיקים
+===================== */
+
+function spawnParticles(x,y,color){
+
+  for(let i=0;i<10;i++){
+
+    particles.push({
+
+      x,
+      y,
+
+      vx:(Math.random()-.5)*4,
+
+      vy:(Math.random()-1.5)*4,
+
+      life:35,
+
+      color
+    });
+  }
+}
+
+function updateParticles(){
+
+  particles.forEach(p=>{
+
+    p.x += p.vx;
+
+    p.y += p.vy;
+
+    p.vy += 0.15;
+
+    p.life--;
+  });
+
+  particles = particles.filter(p=>p.life>0);
+}
+
+function drawParticles(){
+
+  particles.forEach(p=>{
+
+    ctx.globalAlpha = p.life/35;
+
+    ctx.fillStyle = p.color;
+
+    ctx.beginPath();
+
+    ctx.arc(p.x,p.y,3,0,Math.PI*2);
+
+    ctx.fill();
+
+    ctx.globalAlpha = 1;
+  });
+}
+
+/* =====================
+   Collision
+===================== */
+
+function rect(a,b){
+
+  return(
+
+    a.x < b.x+b.w &&
+    a.x+a.w > b.x &&
+    a.y < b.y+b.h &&
+    a.y+a.h > b.y
+  );
+}
+
+/* =====================
+   Update Player
+===================== */
+
+function updatePlayer(p){
+
+  if(gameFinished) return;
+
+  if(keys[p.controls.left]){
+
+    p.vx = -3;
+  }
+
+  else if(keys[p.controls.right]){
+
+    p.vx = 3;
+  }
+
+  else{
+
+    p.vx *= 0.7;
+  }
+
+  if(keys[p.controls.jump] && p.onGround){
+
+    p.vy = -10.2;
+p.jumpAnim = 1;
+
+    p.onGround = false;
+
+    spawnParticles(
+      p.x+p.w/2,
+      p.y+p.h,
+      p.color
+    );
+  }
+
+  p.vy += G;
+
+  p.x += p.vx;
+  p.y += p.vy;
+
+  p.onGround = false;
+
+  level.platforms.forEach(pl=>{
+
+    if(rect(p,pl) && p.vy>0){
+
+      p.y = pl.y-p.h;
+
+      p.vy = 0;
+
+      p.onGround = true;
+    }
+  });
+
+  /* Fire Diamonds */
+
+
+  level.fireDiamonds.forEach(d=>{
+
+    if(
+
+      p.type==="fire" &&
+
+      !d.collected &&
+
+      Math.abs(p.x-d.x)<25 &&
+
+      Math.abs(p.y-d.y)<25
+    ){
+
+      d.collected = true;
+
+      spawnParticles(
+        d.x,
+        d.y,
+        "#ff8800"
+      );
+    }
+  });
+
+  /* Water Diamonds */
+
+  level.goldDiamonds?.forEach(d=>{
+  if(!d.collected &&
+     Math.abs(p.x-d.x)<25 &&
+     Math.abs(p.y-d.y)<25){
+
+    d.collected = true;
+
+    spawnParticles(d.x,d.y,"gold");
+
+    score += 5;
+  }
+});
+
+  level.goldDiamonds?.forEach(d=>{
+  if(!d.collected &&
+     Math.abs(p.x-d.x)<25 &&
+     Math.abs(p.y-d.y)<25){
+
+    d.collected = true;
+
+    spawnParticles(d.x,d.y,"gold");
+
+    score += 5;
+  }
+});
+
+  level.waterDiamonds.forEach(d=>{
+
+    if(
+
+      p.type==="water" &&
+
+      !d.collected &&
+
+      Math.abs(p.x-d.x)<25 &&
+
+      Math.abs(p.y-d.y)<25
+    ){
+
+      d.collected = true;
+
+      spawnParticles(
+        d.x,
+        d.y,
+        "#66e7ff"
+      );
+    }
+  });
+
+  level.goldDiamonds?.forEach(d=>{
+  if(!d.collected){
+    ctx.fillStyle="gold";
+    ctx.shadowBlur=15;
+    ctx.shadowColor="gold";
+
+    ctx.beginPath();
+    ctx.moveTo(d.x,d.y-10);
+    ctx.lineTo(d.x+10,d.y);
+    ctx.lineTo(d.x,d.y+10);
+    ctx.lineTo(d.x-10,d.y);
+    ctx.fill();
+
+    ctx.shadowBlur=0;
+  }
+});
+
+  p.anim += Math.abs(p.vx) > 0.5 ? 0.25 : 0.08;
+}
+
+/* =====================
+   ציור דמות
+===================== */
+
+function drawCharacter(p){
+
+  const walk = Math.sin(p.anim*8)*4;
+
+  ctx.shadowBlur = 20;
+  ctx.shadowColor = p.color;
+
+  /* גוף */
+
+  ctx.fillStyle = p.color;
+
+  ctx.beginPath();
+
+  ctx.roundRect(
+    p.x+6,
+    p.y+14,
+    22,
+    24,
+    10
+  );
+
+  ctx.fill();
+
+  /* ראש */
+
+  ctx.beginPath();
+
+  ctx.arc(
+    p.x+17,
+    p.y+8,
+    10,
+    0,
+    Math.PI*2
+  );
+
+  ctx.fill();
+
+  /* עיניים */
+
+  ctx.fillStyle="white";
+
+  ctx.beginPath();
+
+  ctx.arc(p.x+13,p.y+6,2,0,Math.PI*2);
+
+  ctx.arc(p.x+21,p.y+6,2,0,Math.PI*2);
+
+  ctx.fill();
+
+  /* ידיים */
+
+  ctx.beginPath();
+
+// יד שמאל
+ctx.moveTo(p.x+7,p.y+20);
+ctx.lineTo(p.x+7 + walk, p.y+28);
+
+// יד ימין
+ctx.moveTo(p.x+28,p.y+20);
+ctx.lineTo(p.x+28 - walk, p.y+28);
+
+ctx.stroke();
+  /* רגליים */
+
+  ctx.beginPath();
+
+// רגל שמאל
+ctx.moveTo(p.x+12,p.y+38);
+ctx.lineTo(p.x+12 - walk, p.y+52);
+
+// רגל ימין
+ctx.moveTo(p.x+22,p.y+38);
+ctx.lineTo(p.x+22 + walk, p.y+52);
+
+ctx.stroke();
+  /* אש */
+
+  if(p.type==="fire"){
+
+    ctx.fillStyle="orange";
+
+    ctx.beginPath();
+
+    ctx.moveTo(p.x+17,p.y-15);
+    ctx.lineTo(p.x+8,p.y+3);
+    ctx.lineTo(p.x+26,p.y+3);
+
+    ctx.fill();
+  }
+
+  /* מים */
+
+  if(p.type==="water"){
+
+    ctx.strokeStyle="#c4f5ff";
+
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+
+    for(let i=0;i<20;i++){
+
+      const xx = p.x+i*1.5;
+
+      const yy =
+        p.y-3+
+        Math.sin(i+p.anim*5)*2;
+
+      if(i===0){
+
+        ctx.moveTo(xx,yy);
+
+      }else{
+
+        ctx.lineTo(xx,yy);
+      }
+    }
+
+    ctx.stroke();
+  }
+}
+
+/* =====================
+   Draw Level
+===================== */
+
+function drawLevel(){
+
+  level.platforms.forEach(pl=>{
+
+    const grd =
+      ctx.createLinearGradient(
+        0,
+        pl.y,
+        0,
+        pl.y+pl.h
+      );
+
+    grd.addColorStop(0,"#59677f");
+
+    grd.addColorStop(1,"#2b3440");
+
+    ctx.fillStyle = grd;
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+      pl.x,
+      pl.y,
+      pl.w,
+      pl.h,
+      10
+    );
+
+    ctx.fill();
+  });
+
+  /* Fire Diamonds */
+
+  level.fireDiamonds.forEach(d=>{
+
+    if(!d.collected){
+
+      ctx.fillStyle="#ff6600";
+
+      ctx.beginPath();
+
+      ctx.moveTo(d.x,d.y-12);
+
+      ctx.lineTo(d.x+10,d.y);
+
+      ctx.lineTo(d.x,d.y+12);
+
+      ctx.lineTo(d.x-10,d.y);
+
+      ctx.fill();
+    }
+  });
+
+  /* Water Diamonds */
+
+  level.waterDiamonds.forEach(d=>{
+
+    if(!d.collected){
+
+      ctx.fillStyle="#66e7ff";
+
+      ctx.beginPath();
+
+      ctx.moveTo(d.x,d.y-12);
+
+      ctx.lineTo(d.x+10,d.y);
+
+      ctx.lineTo(d.x,d.y+12);
+
+      ctx.lineTo(d.x-10,d.y);
+
+      ctx.fill();
+    }
+  });
+
+  /* Doors */
+
+  level.doors.forEach(d=>{
+
+    const ready =
+
+      level.fireDiamonds.every(x=>x.collected)
+
+      &&
+
+      level.waterDiamonds.every(x=>x.collected);
+
+    ctx.fillStyle =
+      d.type==="fire"
+      ? "#ff5a2f"
+      : "#45b7ff";
+
+    ctx.globalAlpha = ready ? 1 : .35;
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+      d.x,
+      d.y,
+      d.w,
+      d.h,
+      10
+    );
+
+    ctx.fill();
+
+    ctx.globalAlpha = 1;
+  });
+}
+
+/* =====================
+   מעבר שלב
+===================== */
+
+function nextLevel(){
+
+  currentLevel++;
+
+  document.getElementById("levelText").innerText =
+    currentLevel+1;
+
+  if(currentLevel >= levels.length){
+
+    finishGame();
+
+    return;
+  }
+
+  level = levels[currentLevel];
+
+  /* איפוס שחקנים */
+
+  fire.x = 100;
+  fire.y = 100;
+
+  water.x = 170;
+  water.y = 100;
+}
+
+/* =====================
+   ניצחון
+===================== */
+
+function checkWin(){
+
+  const ready =
+
+    level.fireDiamonds.every(x=>x.collected)
+
+    &&
+
+    level.waterDiamonds.every(x=>x.collected);
+
+  if(!ready) return;
+
+  let allInDoors = true;
+
+  level.doors.forEach(d=>{
+
+    const p =
+      players.find(x=>x.type===d.type);
+
+    if(!rect(p,d)){
+
+      allInDoors = false;
+    }
+  });
+
+  if(allInDoors){
+
+    setTimeout(()=>{
+
+      nextLevel();
+
+    },800);
+  }
+}
+
+/* =====================
+   סוף המשחק
+===================== */
+
+function finishGame(){
+
+  gameFinished = true;
+
+  document.getElementById("winScreen").style.display =
+    "flex";
+
+  const total =
+    ((Date.now()-startTime)/1000).toFixed(1);
+
+  document.getElementById("finishTime").innerHTML =
+    `סיימת את כל השלבים תוך ${total} שניות ⏱️`;
+}
+
+/* =====================
+   רקע
+===================== */
+
+function drawBackground(){
+
+  for(let i=0;i<90;i++){
+
+    ctx.fillStyle =
+      "rgba(255,255,255,.08)";
+
+    ctx.beginPath();
+
+    ctx.arc(
+      (i*97)%1100,
+      (i*53)%600,
+      1.5,
+      0,
+      Math.PI*2
+    );
+
+    ctx.fill();
+  }
+}
+
+/* =====================
+   Loop
+===================== */
+
+function loop(){
+
+  ctx.clearRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  drawBackground();
+
+  updateParticles();
+
+  drawParticles();
+
+  drawLevel();
+
+  players.forEach(updatePlayer);
+
+  players.forEach(drawCharacter);
+
+  checkWin();
+
+  requestAnimationFrame(loop);
+}
+
+loop();
+
+</script>
+</body>
+</html>
